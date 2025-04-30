@@ -122,8 +122,10 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
 !if $(WINDOWS_BOOT_ENABLE) == TRUE
 !endif
 
-  DEFINE SPI_VARIABLE_BASE          = 0x00390000
+  DEFINE SPI_VARIABLE_BASE          = 0x00380000
   DEFINE SPI_VARIABLE_SIZE          = 0x28000
+
+  DEFINE LINUX_ACPI_CONFIG_OVERRIDE = TRUE
 
 !include Platform/CIX/Sky1/Sky1Common.dsc.inc
 !include Platform/Radxa/RadxaCommon.dsc.inc
@@ -140,7 +142,7 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
 [LibraryClasses.common]
   PlatformConfigParamsHookLib|Platform/Radxa/Orion/O6/Library/PlatformConfigParamsHookLib/PlatformConfigParamsHookLib.inf
   PlatformEnvHookLib|Platform/Radxa/Orion/O6/Library/PlatformEnvHookLib/PlatformEnvHookLib.inf
-  RealTimeClockLib|Silicon/NXP/Library/Pcf8563RealTimeClockLib/Pcf8563RealTimeClockLib.inf
+  RealTimeClockLib|Platform/Radxa/Orion/O6/Library/Hym8563RealTimeClockLib/Hym8563RealTimeClockLib.inf
 
   PlatformBootHookLib|Platform/CIX/Sky1/Merak/Library/PlatformBootHookLib/PlatformBootHookLib.inf
 
@@ -188,8 +190,8 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
 !endif
   Platform/CIX/Sky1/Drivers/DtbUpdateDxeSi/DtbUpdateDxe.inf
 !if $(ACPI_ENABLE) == TRUE
-  Platform/CIX/Sky1/Merak/ACPI/AcpiPlatfomTables/AcpiPlatfomTables.inf
-  Platform/CIX/Sky1/Merak/ACPI/AcpiPlatformDxe/AcpiPlatformDxe.inf
+  Platform/Radxa/Orion/O6/Drivers/AcpiPlatfomTables/AcpiPlatfomTables.inf
+  Platform/Radxa/Orion/O6//Drivers/AcpiPlatformDxe/AcpiPlatformDxe.inf
 !endif
 !if $(SMBIOS_ENABLE) == TRUE
   Platform/Radxa/Orion/O6/Drivers/PlatformSmbios/PlatformSmbios.inf
@@ -260,6 +262,11 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   GCC:*_*_*_CC_FLAGS              = -DSOC_GPIO_INTR_ENABLE
 !endif
 
+!if $(LINUX_ACPI_CONFIG_OVERRIDE) == TRUE
+  GCC:*_*_*_ASLPP_FLAGS           = -DLINUX_ACPI_CONFIG_OVERRIDE
+  GCC:*_*_*_ASLPP_FLAGS           = -I$(WORKSPACE)/../edk2-platforms/Platform/Radxa/Orion/O6/Drivers
+!endif
+
 !if $(STMM_SUPPORT) == TRUE
   GCC:*_*_*_CC_FLAGS              = -DSTMM_SUPPORT
 !endif
@@ -302,8 +309,8 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   gCixTokenSpaceGuid.PcdI2c2En|FALSE
   gCixTokenSpaceGuid.PcdI2c2BusFreq|100000
   gCixTokenSpaceGuid.PcdI2c3En|TRUE
-  gCixTokenSpaceGuid.PcdI2c3BusFreq|100000
   gCixTokenSpaceGuid.PcdI2c3Runtime|TRUE          # For RTC runtime service
+  gCixTokenSpaceGuid.PcdI2c3BusFreq|100000
   gCixTokenSpaceGuid.PcdI2c4En|TRUE
   gCixTokenSpaceGuid.PcdI2c4BusFreq|100000
   gCixTokenSpaceGuid.PcdI2c5En|TRUE
@@ -312,6 +319,8 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   gCixTokenSpaceGuid.PcdI2c6BusFreq|50000
 
   # PD
+  gCixTokenSpaceGuid.PcdI2c0En|TRUE
+  gCixTokenSpaceGuid.PcdI2c0BusFreq|100000
   gCixTokenSpaceGuid.PcdI2c1En|TRUE
   gCixTokenSpaceGuid.PcdI2c1BusFreq|100000
   gCixTokenSpaceGuid.PcdI2c7En|TRUE
@@ -333,11 +342,11 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   gCixTokenSpaceGuid.PcdUsbCDrdControl0Enable|TRUE
   gCixTokenSpaceGuid.PcdUsbCDrdControl0DataRole|FALSE
   # USBC1
-  gCixTokenSpaceGuid.PcdUsbCControl0Enable|FALSE
+  gCixTokenSpaceGuid.PcdUsbCControl0Enable|TRUE
   # USBC2
   gCixTokenSpaceGuid.PcdUsbCControl1Enable|TRUE
   # USBC3
-  gCixTokenSpaceGuid.PcdUsbCControl2Enable|FALSE
+  gCixTokenSpaceGuid.PcdUsbCControl2Enable|TRUE
 
   gCixTokenSpaceGuid.PcdUsb2Control0Enable|TRUE
   gCixTokenSpaceGuid.PcdUsb2Control1Enable|TRUE
@@ -359,6 +368,7 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   gCixTokenSpaceGuid.PcdIspCamera3Power|0x00
 
   gCixPlatformTokenSpaceGuid.PcdEcAcpiI2cEn|TRUE
+  gCixPlatformTokenSpaceGuid.PcdAcpiGpio0IoMask|0x20000000 # vbus for usb port6-7
   gCixPlatformTokenSpaceGuid.PcdAcpiGpio3IoMask|0x00018000 # pwm/edp en pin output
 
 # Platform specific defaults
@@ -366,7 +376,7 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   gArmTokenSpaceGuid.PcdSystemProductName|L"Radxa Orion O6"
 
   # RTC (taken from Phecda PcdI2c3BusFreq)
-  gPcf8563RealTimeClockLibTokenSpaceGuid.PcdI2cBusFrequency|100000
+  gHym8563RealTimeClockLibTokenSpaceGuid.PcdI2cBusFrequency|100000
 
   # Fill in dpu index to config display priority
   # Index | Output Name
@@ -381,6 +391,9 @@ DEFINE WINDOWS_BOOT_ENABLE          = FALSE
   gCixTokenSpaceGuid.PcdDPPriority2|0 #
   gCixTokenSpaceGuid.PcdDPPriority3|3 #
   gCixTokenSpaceGuid.PcdDPPriority4|2 # lowest priority
+
+  gCixPlatformTokenSpaceGuid.PcdAcpiPrefPmProf|0x01  # Desktop
+  gCixTokenSpaceGuid.PcdAcpiCsiDmaEnable|FALSE
 
 [PcdsDynamicDefault.common]
 
